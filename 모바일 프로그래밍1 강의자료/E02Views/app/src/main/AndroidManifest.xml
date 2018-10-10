@@ -16,8 +16,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".SignupActivity" />
-        <activity android:name=".MemoActivity"></activity>
+        <activity
+            android:name=".SignupActivity"
+            android:label="@string/action_signUp" />
+        <activity
+            android:name=".MemoActivity"
+            android:label="@string/action_memo" />
+        <activity
+            android:name=".ButtonsActivity"
+            android:label="@string/action_buttons" />
+        <activity android:name=".CheckboxesActivity"
+            android:label="@string/action_checkboxes"></activity>
     </application>
 
 </manifest>

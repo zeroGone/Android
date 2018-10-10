@@ -3,8 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item android:id="@+id/action_signUp"
-        android:title="@string/action_signUp" app:showAsAction="always" />
+        android:title="@string/action_signUp" app:showAsAction="never" />
     <item android:id="@+id/action_memo"
-        android:title="@string/action_memo" app:showAsAction="always" />
+        android:title="@string/action_memo" app:showAsAction="never" />
+    <item android:id="@+id/action_buttons"
+        android:title="@string/action_buttons" app:showAsAction="never" />
+    <item android:id="@+id/action_checkboxes"
+        android:title="@string/action_checkboxes" app:showAsAction="never" />
 
 </menu>
