@@ -10,5 +10,7 @@
         android:title="@string/action_buttons" app:showAsAction="never" />
     <item android:id="@+id/action_checkboxes"
         android:title="@string/action_checkboxes" app:showAsAction="never" />
+    <item android:id="@+id/action_spinners"
+        android:title="@string/action_spinners" app:showAsAction="never" />
 
 </menu>
