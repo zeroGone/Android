@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">D201432008</string>
+    <string name="exam1">문제1</string>
+    <string name="exam2">문제2</string>
+    <string name="confirm">확인</string>
+    <string name="doYouWantToDelete">삭제하시겠습니까?</string>
+    <string name="cancel">취소</string>
+    <string name="delete">삭제</string>
+    <string name="userType1">관리자</string>
+    <string name="userType2">사용자</string>
+    <string name="userType3">손님</string>
+
+</resources>
