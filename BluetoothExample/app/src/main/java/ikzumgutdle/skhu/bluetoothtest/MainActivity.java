@@ -1,205 +1,143 @@
 package ikzumgutdle.skhu.bluetoothtest;
-import android.app.Activity;
+
+import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.DataSetObserver;
+import android.content.pm.PackageManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.Adapter;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    //BluetoothAdapter
-    BluetoothAdapter mBluetoothAdapter;
+    private BluetoothAdapter bluetoothAdapter;
+    private final int REQUEST_ENABLE_BT = 2;
+    private final int REQUEST_ENABLE_CL = 3;
 
-    //블루투스 요청 액티비티 코드
-    final static int BLUETOOTH_REQUEST_CODE = 100;
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            //기기를 찾았다면
+            if(BluetoothDevice.ACTION_FOUND.equals(action)){
+                //인텐트로 기기에 대한 블루투스 디바이스를 얻어오고
+                BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                foundAdapter.add(String.format("이름:%s, 주소:%s", device.getName(), device.getAddress()));
+                foundAdapter.notifyDataSetChanged();
+                Log.d("로그",device.getAddress()+"검색됨");
 
-    //UI
-    TextView txtState;
-    Button btnSearch;
-    ListView listDevice;
+            }
+        }
+    };//블루투스 기기들의 받아오기 위한 리시버;
 
-    //Adapter
-    SimpleAdapter adapterDevice;
-
-    //list - Device 목록 저장
-    List<Map<String,String>> dataDevice;
-
+    private ArrayList<String> bondedList;
+    private ArrayList<String> foundList;
+    private ListView foundListView;
+    private ArrayAdapter<String> foundAdapter;
+    private IntentFilter filter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //UI
-        txtState = (TextView)findViewById(R.id.state);
-        btnSearch = (Button)findViewById(R.id.button);
-        listDevice = (ListView)findViewById(R.id.bt_list);
-        Button button = findViewById(R.id.button2);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendBroadcast(new Intent("섹스섹스"));
-            }
-        });
-        //Adapter
-        dataDevice = new ArrayList<>();
-        adapterDevice = new SimpleAdapter(this, dataDevice, android.R.layout.simple_list_item_2, new String[]{"name","address"}, new int[]{android.R.id.text1, android.R.id.text2});
-        listDevice.setAdapter(adapterDevice);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        //블루투스 지원 안하면 끝냄
+        if (bluetoothAdapter == null) {
+            Log.d("로그","블루투스 지원안함");
+            this.finish();
+        }else if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)!= PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, this.REQUEST_ENABLE_CL);
+        }else{
+            bondedList = new ArrayList<String>();
+            foundList = new ArrayList<String>();
 
+            Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+            for(BluetoothDevice bluetoothDevice: pairedDevices) bondedList.add(String.format("이름:%s, 주소:%s", bluetoothDevice.getName(), bluetoothDevice.getAddress()));
+            //페어링 된 기기들 검색
+            ListView bondedListView = findViewById(R.id.bt_bonded);
+            ArrayAdapter<String> bondedAdapter =new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, bondedList);
+            bondedListView.setAdapter(bondedAdapter);
 
-        //블루투스 지원 유무 확인
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+            Button button = findViewById(R.id.button);
+            button.setOnClickListener(this);
 
-        //블루투스를 지원하지 않으면 null을 리턴한다
-        if(mBluetoothAdapter == null){
-            Toast.makeText(this, "블루투스를 지원하지 않는 단말기 입니다.", Toast.LENGTH_SHORT).show();
-            finish();
-            return;
+            foundListView = findViewById(R.id.bt_found);
+            foundAdapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1, foundList);
+            foundListView.setAdapter(foundAdapter);
+
+            filter = new IntentFilter();
+            filter.addAction(BluetoothDevice.ACTION_FOUND);
+            registerReceiver(receiver,filter);
         }
+    }
 
-        //블루투스 브로드캐스트 리시버 등록
-        //리시버1
-        IntentFilter stateFilter = new IntentFilter();
-        stateFilter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED); //BluetoothAdapter.ACTION_STATE_CHANGED : 블루투스 상태변화 액션
-        registerReceiver(mBluetoothStateReceiver, stateFilter);
-        //리시버2
-        IntentFilter searchFilter = new IntentFilter();
-        searchFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED); //BluetoothAdapter.ACTION_DISCOVERY_STARTED : 블루투스 검색 시작
-        searchFilter.addAction(BluetoothDevice.ACTION_FOUND); //BluetoothDevice.ACTION_FOUND : 블루투스 디바이스 찾음
-        searchFilter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED); //BluetoothAdapter.ACTION_DISCOVERY_FINISHED : 블루투스 검색 종료
-        registerReceiver(mBluetoothSearchReceiver, searchFilter);
+    @Override
+    protected void onPause(){
+        unregisterReceiver(receiver);
+        super.onPause();
+    }
 
+    @Override
+    protected void onResume(){
+        registerReceiver(receiver,filter);
+        super.onResume();
+    }
 
-        //1. 블루투스가 꺼져있으면 활성화
-//        if(!mBluetoothAdapter.isEnabled()){
-//            mBluetoothAdapter.enable(); //강제 활성화
-//        }
-
-        //2. 블루투스가 꺼져있으면 사용자에게 활성화 요청하기
-        if(!mBluetoothAdapter.isEnabled()){
+    @Override
+    public void onClick(View v) {
+        //블루투스가 안켜져있으면
+        if (!bluetoothAdapter.isEnabled()) {
+            //키게함
             Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(intent, BLUETOOTH_REQUEST_CODE);
-        }
+            this.startActivityForResult(intent, REQUEST_ENABLE_BT);
+        }else {
+            //블루투스 지원 되고 활성화되었으면
+            Toast.makeText(this, "블루투스 지원함", Toast.LENGTH_SHORT).show();
+            bluetoothAdapter.startDiscovery();
 
+        }
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case REQUEST_ENABLE_CL: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    //퍼미션 허락했을경우
+                    bluetoothAdapter.startDiscovery();
+                } else {
+                    //퍼미션 거부당했을 경우
+                    Toast.makeText(this, "권한 허락해주세요", Toast.LENGTH_LONG).show();
+                    this.finish();
+                }
+                return;
+            }
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
     }
 
-
-    //블루투스 상태변화 BroadcastReceiver
-    BroadcastReceiver mBluetoothStateReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            //BluetoothAdapter.EXTRA_STATE : 블루투스의 현재상태 변화
-            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, -1);
-
-            //블루투스 활성화
-            if(state == BluetoothAdapter.STATE_ON){
-                txtState.setText("블루투스 활성화");
-            }
-            //블루투스 활성화 중
-            else if(state == BluetoothAdapter.STATE_TURNING_ON){
-                txtState.setText("블루투스 활성화 중...");
-            }
-            //블루투스 비활성화
-            else if(state == BluetoothAdapter.STATE_OFF){
-                txtState.setText("블루투스 비활성화");
-            }
-            //블루투스 비활성화 중
-            else if(state == BluetoothAdapter.STATE_TURNING_OFF){
-                txtState.setText("블루투스 비활성화 중...");
-            }
-        }
-    };
-
-    //블루투스 검색결과 BroadcastReceiver
-    BroadcastReceiver mBluetoothSearchReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            Log.d("로그",action);
-            switch(action){
-                //블루투스 디바이스 검색 종료
-                case BluetoothAdapter.ACTION_DISCOVERY_STARTED:
-                    dataDevice.clear();
-                    Toast.makeText(MainActivity.this, "블루투스 검색 시작", Toast.LENGTH_SHORT).show();
-                    break;
-                //블루투스 디바이스 찾음
-                case BluetoothDevice.ACTION_FOUND:
-                    //검색한 블루투스 디바이스의 객체를 구한다
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    //데이터 저장
-                    Map map = new HashMap();
-                    map.put("name", device.getName()); //device.getName() : 블루투스 디바이스의 이름
-                    map.put("address", device.getAddress()); //device.getAddress() : 블루투스 디바이스의 MAC 주소
-                    dataDevice.add(map);
-                    //리스트 목록갱신
-                    adapterDevice.notifyDataSetChanged();
-                    break;
-                //블루투스 디바이스 검색 종료
-                case BluetoothAdapter.ACTION_DISCOVERY_FINISHED:
-                    Toast.makeText(MainActivity.this, "블루투스 검색 종료", Toast.LENGTH_SHORT).show();
-                    btnSearch.setEnabled(true);
-                    break;
-            }
-        }
-    };
-
-
-    //블루투스 검색 버튼 클릭
-    public void mOnBluetoothSearch(View v){
-        //검색버튼 비활성화
-        btnSearch.setEnabled(false);
-        //mBluetoothAdapter.isDiscovering() : 블루투스 검색중인지 여부 확인
-        //mBluetoothAdapter.cancelDiscovery() : 블루투스 검색 취소
-        if(mBluetoothAdapter.isDiscovering()){
-            mBluetoothAdapter.cancelDiscovery();
-        }
-//        mBluetoothAdapter.startDiscovery() : 블루투스 검색 시작
-        mBluetoothAdapter.startDiscovery();
-    }
-
-
+    //화면전화 이후 결과값
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch(requestCode){
-            case BLUETOOTH_REQUEST_CODE:
-                //블루투스 활성화 승인
-                if(resultCode == Activity.RESULT_OK){
-
-                }
-                //블루투스 활성화 거절
-                else{
-                    Toast.makeText(this, "블루투스를 활성화해야 합니다.", Toast.LENGTH_SHORT).show();
-                    finish();
-                    return;
-                }
-                break;
-        }
-    }
-
-    @Override
-    protected void onDestroy() {
-        unregisterReceiver(mBluetoothStateReceiver);
-        unregisterReceiver(mBluetoothSearchReceiver);
-        super.onDestroy();
+        if (resultCode == REQUEST_ENABLE_BT) bluetoothAdapter.startDiscovery();
+        super.onActivityResult(requestCode, resultCode, data);
     }
 }
