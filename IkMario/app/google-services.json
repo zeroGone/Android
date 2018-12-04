@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1060819601937",
+    "firebase_url": "https://ikmario-aab12.firebaseio.com",
+    "project_id": "ikmario-aab12",
+    "storage_bucket": "ikmario-aab12.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1060819601937:android:b59374a6547b0715",
+        "android_client_info": {
+          "package_name": "ikzumgutdle.skhu.ikmario"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1060819601937-nlgr2a4nanhtu76qocip8ihni2qk3ljd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ikzumgutdle.skhu.ikmario",
+            "certificate_hash": "565a429baf881b962efd412ba8b1baa4d426ffa2"
+          }
+        },
+        {
+          "client_id": "1060819601937-7mma00o1lbik9fmpel7lq7919goda3g0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjzuNvQZH80so2vC8LPO6MMkach8bBUDI"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1060819601937-7mma00o1lbik9fmpel7lq7919goda3g0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,29 +1,14 @@
 package ikzumgutdle.skhu.ikmario;
 
-import android.Manifest;
 import android.app.Activity;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Set;
-import java.util.UUID;
 
 import app.akexorcist.bluetotohspp.library.BluetoothSPP;
 import app.akexorcist.bluetotohspp.library.BluetoothState;
@@ -33,7 +18,6 @@ public class StartActivity extends AppCompatActivity implements Runnable{
     private ImageView wifi;
     public static BluetoothSPP bluetoothSPP;
     private int timer;
-    private boolean start;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,6 +73,7 @@ public class StartActivity extends AppCompatActivity implements Runnable{
             @Override
             public void onAutoConnectionStarted() {
                 Log.d("로그","자동연결");
+                startActivity(new Intent(StartActivity.this, MainActivity.class));
             }
 
             @Override
@@ -116,7 +101,7 @@ public class StartActivity extends AppCompatActivity implements Runnable{
     @Override
     public void run() {
         while(true){
-            if(start) break;
+//            if(start) break;
             if(timer%1000==0) {
 //                wifi.startAnimation(AnimationUtils.loadAnimation(this,R.anim.fade_out));
 //                runOnUiThread(new Runnable() {
