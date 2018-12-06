@@ -1,131 +1,165 @@
 package ikzumgutdle.skhu.ikmario;
 
-import android.app.Activity;
-
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
-
+import android.content.IntentFilter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
+import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
 
-import app.akexorcist.bluetotohspp.library.BluetoothSPP;
-import app.akexorcist.bluetotohspp.library.BluetoothState;
-import app.akexorcist.bluetotohspp.library.DeviceList;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Set;
+import java.util.UUID;
 
 public class StartActivity extends AppCompatActivity implements Runnable{
-    private ImageView wifi;
-    public static BluetoothSPP bluetoothSPP;
-    private int timer;
-
+    public static final String MARIO_SEUNGIK_ADDRESS = "98:D3:71:FD:2F:CE";
+    public static OutputStream writer;
+    private BluetoothAdapter bluetoothAdapter;
+    private BroadcastReceiver receiver;
+    private boolean start;
+    private boolean bluetoothOnCheck;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
-        wifi= findViewById(R.id.start_wifi);
-        wifi.setVisibility(View.INVISIBLE);
-        new Thread(this).start();
 
-        bluetoothSPP = new BluetoothSPP(this);
-        if(!bluetoothSPP.isBluetoothAvailable()) {
-            Log.d("로그", "블루투스 안됨");
-            this.finish();
-        }else if(!bluetoothSPP.isBluetoothEnabled()) bluetoothSPP.enable();
-
-        bluetoothSPP.setupService();
-        bluetoothSPP.startService(BluetoothState.DEVICE_OTHER);
-
-        bluetoothSPP.setBluetoothConnectionListener(new BluetoothSPP.BluetoothConnectionListener() {
-            @Override
-            public void onDeviceConnected(String name, String address) {
-                if(!address.equals("98:D3:71:FD:2F:CE")) onDeviceDisconnected();
-            }
-
-            @Override
-            public void onDeviceDisconnected() {
-                Log.d("로그","연결끊김");
-
-            }
-
-            @Override
-            public void onDeviceConnectionFailed() {
-                Log.d("로그","연결실패");
-            }
-        });
-
-
-        bluetoothSPP.setBluetoothStateListener(new BluetoothSPP.BluetoothStateListener() {
-            @Override
-            public void onServiceStateChanged(int state) {
-                if(state == BluetoothState.STATE_CONNECTED) startActivity(new Intent(StartActivity.this, MainActivity.class));
-                    // Do something when successfully connected
-                else if(state == BluetoothState.STATE_CONNECTING);
-                    // Do something while connecting
-                else if(state == BluetoothState.STATE_LISTEN) startActivityForResult(new Intent(getApplicationContext(), DeviceList.class), BluetoothState.REQUEST_CONNECT_DEVICE);
-                    // Do something when device is waiting for connection
-                else if(state == BluetoothState.STATE_NONE);
-                // Do something when device don't have any connection
-            }
-        });
-
-        bluetoothSPP.setAutoConnectionListener(new BluetoothSPP.AutoConnectionListener() {
-            @Override
-            public void onAutoConnectionStarted() {
-                Log.d("로그","자동연결");
-                startActivity(new Intent(StartActivity.this, MainActivity.class));
-            }
-
-            @Override
-            public void onNewConnection(String name, String address) {
-            }
-        });
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if(bluetoothAdapter == null) this.finish();
     }
 
+    private void bluetoothStart(){
+        start = true;
+        findViewById(R.id.bluetoothOnPlz).setVisibility(View.INVISIBLE);
+        new Thread(this).start();
+
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+        for(BluetoothDevice bluetoothDevice: pairedDevices) {
+            if(bluetoothDevice.getAddress().equals(MARIO_SEUNGIK_ADDRESS)){
+                new Thread(new ConnectThread(bluetoothDevice)).start();
+            }
+        }
+
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if(intent.getAction().equals(BluetoothDevice.ACTION_FOUND)){
+                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if(device.getAddress().equals(MARIO_SEUNGIK_ADDRESS)){
+                        new Thread(new ConnectThread(device)).start();
+                    }
+                }
+            }
+        };
+
+        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+        registerReceiver(receiver, filter);
+        bluetoothAdapter.startDiscovery();
+    };
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == BluetoothState.REQUEST_CONNECT_DEVICE) {
-            if(resultCode == Activity.RESULT_OK)  bluetoothSPP.connect(data);
-        } else if(requestCode == BluetoothState.REQUEST_ENABLE_BT) {
-            if(resultCode == Activity.RESULT_OK) {
-                bluetoothSPP.setupService();
-                this.finish();
-            } else {
-                // Do something if user doesn't choose any device (Pressed back)
-                this.finish();
-            }
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(receiver);
+        start = false;
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        if(!bluetoothAdapter.isEnabled()) {
+            bluetoothOnCheck = false;
+            receiver = new BroadcastReceiver() {
+                @Override
+                public void onReceive(Context context, Intent intent) {
+                    if (intent.getAction().equals(BluetoothAdapter.ACTION_STATE_CHANGED)) {
+                        if(bluetoothOnCheck){
+                            unregisterReceiver(this);
+                            bluetoothStart();
+                        }else{
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    findViewById(R.id.start_wifi).setVisibility(View.INVISIBLE);
+                                    findViewById(R.id.bluetoothOnPlz).setVisibility(View.VISIBLE);
+                                }
+                            });
+                        }
+                    }
+                }
+            };
+            IntentFilter filter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
+            registerReceiver(receiver, filter);
+        }else{
+            bluetoothOnCheck = true;
+            new Thread(this).start();
+            bluetoothStart();
         }
     }
 
     @Override
     public void run() {
-        while(true){
-//            if(start) break;
+        final ImageView wifi = findViewById(R.id.start_wifi);
+        int timer = 0;
+        while(start){
             if(timer%1000==0) {
-//                wifi.startAnimation(AnimationUtils.loadAnimation(this,R.anim.fade_out));
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() { wifi.setVisibility(View.INVISIBLE);
-//                    }
-//                });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        wifi.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(),R.anim.fade_out));
+                        wifi.setVisibility(View.INVISIBLE); }
+                });
             }
             else if(timer%500==0) {
-//                wifi.startAnimation(AnimationUtils.loadAnimation(this,R.anim.fade_in));
-//                runOnUiThread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        wifi.setVisibility(View.VISIBLE);
-//                    }
-//                });
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        wifi.startAnimation(AnimationUtils.loadAnimation(getApplicationContext(),R.anim.fade_in));
+                        wifi.setVisibility(View.VISIBLE); }
+                });
             }
             timer++;
-            try {
-                Thread.sleep(1);
-            }catch (InterruptedException e){
-                e.printStackTrace();
-            }
+            try { Thread.sleep(1); }
+            catch (InterruptedException e){ e.printStackTrace(); }
         }
     }
 
+    private class ConnectThread implements Runnable{
+        private final BluetoothSocket bluetoothSocket;
+
+        public ConnectThread(BluetoothDevice device){
+            BluetoothSocket socket = null;
+            try{
+                socket = device.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"));
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+            bluetoothSocket = socket;
+        }
+        @Override
+        public void run() {
+            if(bluetoothAdapter.isDiscovering()) bluetoothAdapter.cancelDiscovery();
+            try{
+                bluetoothSocket.connect();
+                writer = bluetoothSocket.getOutputStream();
+                Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                startActivity(intent);
+                start = false;
+                finish();
+            }catch (IOException e){
+                e.printStackTrace();
+                try{
+                    bluetoothSocket.close();
+                }catch (IOException e2){
+                    e2.printStackTrace();
+                }
+            }
+        }
+    }
 }
