@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">E201432008</string>
+    <string name="input_studentNumber">학번을 입력하세요.</string>
+    <string name="input_name">이름을 입력하세요.</string>
+    <string name="btnOK">확인</string>
+    <string name="action_remove">삭제</string>
+    <string name="action_create">등록</string>
+</resources>
